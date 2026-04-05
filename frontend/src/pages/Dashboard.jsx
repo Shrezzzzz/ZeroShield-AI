@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 import { Activity, AlertTriangle, Server, Bell, TrendingDown } from 'lucide-react';
 import { api } from '../services/api';
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-[#111827]/90 border border-white/10 p-4 rounded-xl shadow-xl shadow-black/50 backdrop-blur-md">
+        <p className="text-white font-medium mb-3 text-[13px]">{label}</p>
+        <div className="flex flex-col gap-1.5">
+          {payload.map((entry, index) => (
+            <p key={index} className="text-[13px] font-mono m-0" style={{ color: entry.color }}>
+              {entry.name} : {entry.value}
+            </p>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -107,14 +125,24 @@ export default function Dashboard() {
           <div className="h-64">
             {trafficData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trafficData}>
+                  <AreaChart data={trafficData}>
+                    <defs>
+                      <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorAnomalies" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="time" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip contentStyle={{ backgroundColor: '#131a2b', borderColor: '#1e293b' }} />
-                    <Line type="monotone" dataKey="value" stroke="#00f0ff" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="anomalies" stroke="#f43f5e" strokeWidth={2} dot={false} />
-                  </LineChart>
+                    <Area type="monotone" dataKey="value" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorValue)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="anomalies" stroke="#ef4444" fillOpacity={1} fill="url(#colorAnomalies)" strokeWidth={2} />
+                  </AreaChart>
                 </ResponsiveContainer>
             ) : <div className="text-slate-500 flex items-center justify-center h-full text-sm">No traffic data</div>}
           </div>
@@ -129,9 +157,10 @@ export default function Dashboard() {
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
                     <XAxis dataKey="day" stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#475569" fontSize={12} tickLine={false} axisLine={false} />
-                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ backgroundColor: '#131a2b', borderColor: '#1e293b' }} />
-                    <Bar dataKey="calls" fill="#00f0ff" radius={[4, 4, 0, 0]} barSize={20} />
-                    <Bar dataKey="blocked" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.08)' }} />
+                    <Bar dataKey="requests" name="requests" fill="#0ea5e9" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="errors" name="errors" fill="#f59e0b" radius={[4, 4, 0, 0]} barSize={20} />
+                    <Bar dataKey="blocked" name="blocked" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
                   </BarChart>
                 </ResponsiveContainer>
             ) : <div className="text-slate-500 flex items-center justify-center h-full text-sm">No activity data</div>}
@@ -165,22 +194,24 @@ export default function Dashboard() {
               <div className="text-slate-500 text-sm py-4">No active threats detected.</div>
           ) : (
             activeThreatsList.map((threat, i) => (
-                <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-white/[0.05] bg-[#0c1322] hover:bg-white/[0.02] transition-colors gap-4">
-                <div className="flex items-center gap-4">
-                    <AlertTriangle className={threat.status === 'Active' ? 'text-rose-500 w-5 h-5' : 'text-amber-500 w-5 h-5'} />
+                <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl border border-white/[0.08] bg-[#0c1322] hover:bg-white/[0.05] transition-colors gap-4">
+                <div className="flex items-center gap-5">
+                    <div className="flex items-center justify-center">
+                        <AlertTriangle className={threat.status === 'Active' ? 'text-rose-500 w-5 h-5' : threat.status === 'Investigating' ? 'text-amber-500 w-5 h-5' : 'text-[#00f0ff] w-5 h-5'} />
+                    </div>
                     <div>
-                    <div className="text-slate-200 font-medium">{threat.name || threat.title}</div>
-                    <div className="text-slate-500 text-sm">{threat.desc || threat.explanation} {threat.ip ? `· ${threat.ip}` : ''}</div>
+                    <div className="text-slate-200 font-medium text-[15px]">{threat.name || threat.title}</div>
+                    <div className="text-slate-500 text-sm mt-0.5">{threat.desc || threat.explanation} · {threat.ip}</div>
                     </div>
                 </div>
-                <div className="flex items-center gap-4 w-full sm:w-auto">
-                    <div className={`text-sm font-bold ${threat.cloud === 'AWS' ? 'text-amber-500' : threat.cloud === 'Azure' ? 'text-blue-400' : 'text-emerald-400'}`}>
+                <div className="flex items-center gap-5 w-full sm:w-auto">
+                    <div className={`text-[13px] font-bold tracking-wider ${threat.cloud === 'AWS' ? 'text-amber-500' : threat.cloud === 'Azure' ? 'text-[#00f0ff]' : 'text-emerald-400'}`}>
                     {threat.cloud}
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                    <div className={`px-4 py-1.5 rounded-full text-[13px] font-bold ${
                     threat.status === 'Active' ? 'bg-rose-500 text-white' : 
-                    threat.status === 'Mitigated' ? 'bg-[#00f0ff] text-[#050914]' : 
-                    'bg-transparent border border-slate-600 text-slate-300'
+                    threat.status === 'Investigating' ? 'bg-white/10 text-white' : 
+                    'bg-[#00f0ff] text-[#050914]'
                     }`}>
                     {threat.status}
                     </div>

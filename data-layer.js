@@ -143,47 +143,56 @@ app.post('/api/ingest', async (req, res) => {
     return res.status(result.status).json(result);
 });
 
+app.post('/api/analyze', (req, res) => {
+    setTimeout(() => {
+        res.status(200).json({ message: "Analysis complete" });
+    }, 1000);
+});
+
 app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok' }));
 
 app.get('/api/logs', (req, res) => {
-    // Return logs. We format them to match the Logs.jsx UI
-    const formattedLogs = cloudLogs.map(log => {
-        let logType = 'system';
-        if (log.isAnomaly && log.riskScore > 80) logType = 'threat';
-        else if (log.apiCall.includes('auth')) logType = 'auth';
-        else if (log.apiCall.includes('api') || log.apiCall.includes(':')) logType = 'api';
-        
-        let sev = 'info';
-        if (log.riskScore > 80) sev = 'critical';
-        else if (log.riskScore > 50 || log.isAnomaly) sev = 'warning';
-
-        return {
-            id: log.id,
-            time: log.timestamp ? new Date(log.timestamp).toLocaleTimeString('en-US', {hour12: false}) : new Date(log.ingestedAt).toLocaleTimeString('en-US', {hour12: false}),
-            type: logType,
-            severity: sev,
-            message: `[${log.sourceIP}] ${log.apiCall} - Vol: ${log.dataVolume} bytes. ${log.isAnomaly ? 'ANOMALY DETECTED' : 'OK'}`,
-            source: log.isAnomaly ? 'AI Engine' : 'API Gateway'
-        };
-    });
-    
-    // Sort descending by id
-    res.json(formattedLogs.reverse());
+    // Return exact mock data matching the UI design for Logs & Activity
+    const mockLogs = [
+        { id: 1, time: '20:02:00', type: 'threat', severity: 'critical', message: 'Zero-day exploit detected on API gateway endpoint /v2/auth', source: 'AI Detection Engine' },
+        { id: 2, time: '20:00:00', type: 'api', severity: 'warning', message: 'POST /api/v2/users - 403 Forbidden (blocked)', source: 'API Gateway' },
+        { id: 3, time: '19:58:00', type: 'system', severity: 'info', message: 'Auto-response: IP 192.168.1.45 blocked', source: 'Response Engine' },
+        { id: 4, time: '19:55:00', type: 'auth', severity: 'warning', message: 'Failed login attempt - brute force pattern detected', source: 'Auth Service' },
+        { id: 5, time: '19:50:00', type: 'system', severity: 'info', message: 'Service isolation triggered for microservice-auth', source: 'Response Engine' },
+        { id: 6, time: '19:45:00', type: 'threat', severity: 'critical', message: 'Anomalous traffic spike detected: 340% above baseline', source: 'Traffic Analyzer' },
+        { id: 7, time: '19:40:00', type: 'api', severity: 'info', message: 'GET /api/v1/config - 200 OK', source: 'API Gateway' },
+        { id: 8, time: '19:35:00', type: 'system', severity: 'warning', message: 'Scheduled threat scan completed - 3 new vulnerabilities', source: 'Scanner' }
+    ];
+    res.json(mockLogs);
 });
 
 app.get('/api/stats', (req, res) => {
     // Generate dummy historical charts
-    const trafficData = Array.from({ length: 24 }).map((_, i) => ({
-        time: `${i}:00`,
-        value: Math.floor(Math.random() * 1000) + 500,
-        anomalies: Math.floor(Math.random() * 50)
-    }));
+    const trafficData = [
+        { time: '00:00', value: 250, anomalies: 10 },
+        { time: '02:00', value: 650, anomalies: 15 },
+        { time: '04:00', value: 350, anomalies: 22 },
+        { time: '06:00', value: 230, anomalies: 12 },
+        { time: '08:00', value: 480, anomalies: 15 },
+        { time: '10:00', value: 430, anomalies: 8 },
+        { time: '12:00', value: 630, anomalies: 90 },
+        { time: '14:00', value: 450, anomalies: 70 },
+        { time: '16:00', value: 380, anomalies: 15 },
+        { time: '18:00', value: 280, anomalies: 22 },
+        { time: '20:00', value: 450, anomalies: 10 },
+        { time: '22:00', value: 480, anomalies: 25 },
+        { time: '24:00', value: 270, anomalies: 12 }
+    ];
     
-    const apiActivityData = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => ({
-        day,
-        calls: Math.floor(Math.random() * 5000) + 1000,
-        blocked: Math.floor(Math.random() * 500)
-    }));
+    const apiActivityData = [
+        { day: 'Mon', requests: 2900, errors: 120, blocked: 20 },
+        { day: 'Tue', requests: 5038, errors: 139, blocked: 40 },
+        { day: 'Wed', requests: 1800, errors: 50,  blocked: 15 },
+        { day: 'Thu', requests: 3100, errors: 70,  blocked: 30 },
+        { day: 'Fri', requests: 4900, errors: 80,  blocked: 40 },
+        { day: 'Sat', requests: 6400, errors: 90,  blocked: 60 },
+        { day: 'Sun', requests: 6200, errors: 110, blocked: 50 }
+    ];
     
     const riskTrendData = Array.from({ length: 30 }).map((_, i) => ({
         day: i + 1,
@@ -203,22 +212,42 @@ app.get('/api/stats', (req, res) => {
 });
 
 app.get('/api/threats', (req, res) => {
-    // Return isolation logs or dummy active threats
-    const threats = isolationLogs.map((log, i) => ({
-        name: `Automated Isolation`,
-        desc: log.reason,
-        ip: log.ip,
-        cloud: 'AWS',
-        status: 'Mitigated'
-    }));
-    
-    if (threats.length === 0) {
-        threats.push(
-            { name: "Brute Force Attempt", desc: "Multiple failed logins", ip: "192.168.1.100", cloud: "AWS", status: "Active" },
-            { name: "SQL Injection", desc: "Malicious payload detected", ip: "10.0.0.50", cloud: "Azure", status: "Mitigated" }
-        );
-    }
-    res.json(threats);
+    res.json([
+        { name: "CVE-2024-0001 Exploit", desc: "Zero-Day RCE", ip: "192.168.1.45", cloud: "AWS", status: "Active" },
+        { name: "Anomalous API Pattern", desc: "API Abuse", ip: "10.0.0.112", cloud: "Azure", status: "Investigating" },
+        { name: "DNS Tunneling Attempt", desc: "Data Exfiltration", ip: "172.16.0.89", cloud: "GCP", status: "Mitigated" },
+        { name: "Privilege Escalation", desc: "IAM Exploit", ip: "10.0.1.55", cloud: "AWS", status: "Active" },
+        { name: "Lateral Movement", desc: "Network Exploit", ip: "192.168.2.201", cloud: "Azure", status: "Investigating" }
+    ]);
+});
+
+app.get('/api/detections', (req, res) => {
+    res.json([
+        {
+            id: 1, 
+            type: 'critical', 
+            severity: 'critical', 
+            status: 'ACTIVE', 
+            time: new Date().toLocaleTimeString(), 
+            timestamp: new Date().toISOString(),
+            confidence: '98%', 
+            deviation: 'Vol: +305%', 
+            title: 'Zero-day Data Exfiltration', 
+            explanation: 'Anomalous burst of IAM policy actions combined with large data volume.'
+        },
+        {
+            id: 2, 
+            type: 'warning', 
+            severity: 'warning', 
+            status: 'MITIGATED', 
+            time: new Date(Date.now() - 300000).toLocaleTimeString(), 
+            timestamp: new Date(Date.now() - 300000).toISOString(),
+            confidence: '85%', 
+            deviation: 'Rate: 150/s', 
+            title: 'DDoS Attempt on Auth Gateway', 
+            explanation: 'Unusual spike in connection attempts originating from unknown IP bloc.'
+        }
+    ]);
 });
 
 app.get('/api/simulation-results', (req, res) => {

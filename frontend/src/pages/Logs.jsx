@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
+import { api } from '../services/api';
 
 const mockLogs = [
   { id: 1, time: '20:02:00', type: 'threat', severity: 'critical', message: 'Zero-day exploit detected on API gateway endpoint /v2/auth', source: 'AI Detection Engine' },
@@ -14,8 +15,7 @@ export default function Logs() {
 
   useEffect(() => {
     // Initial Fetch
-    fetch('http://localhost:3000/api/logs')
-      .then(res => res.json())
+    api.get('/logs')
       .then(data => {
         if (data && data.length > 0) setLogs(data);
       })
@@ -102,19 +102,19 @@ export default function Logs() {
         
         {/* Logs List */}
         <div className="flex flex-col">
-          {filteredLogs.map((log) => (
+          {filteredLogs.slice(0, 50).map((log) => (
             <div 
-              key={log.id} 
+              key={`${log.id}-${log.time}`} 
               className="flex flex-col lg:flex-row items-start lg:items-center py-4 px-4 border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02] transition-colors gap-4 lg:gap-6 rounded group"
             >
               
               {/* Meta Columns */}
               <div className="flex items-center gap-4 shrink-0 font-mono text-xs">
                 <span className="text-slate-500 w-[60px]">{log.time}</span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest ${getTypeStyle(log.type)}`}>
+                <span className={`px-2.5 py-0.5 rounded-full font-medium lowercase tracking-wide ${getTypeStyle(log.type)}`}>
                   {log.type}
                 </span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest ${getSeverityStyle(log.severity)}`}>
+                <span className={`px-2.5 py-0.5 rounded-full font-medium lowercase tracking-wide ${getSeverityStyle(log.severity)}`}>
                   {log.severity}
                 </span>
               </div>
