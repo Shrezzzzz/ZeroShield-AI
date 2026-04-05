@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroShield AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#0a0f1c',
+              'neon-blue': '#00f0ff',
+              'neon-green': '#00ff9c',
+            },
+            fontFamily: {
+              outfit: ['Outfit', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+              orbitron: ['Orbitron', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body class="h-full bg-slate-950 font-outfit text-slate-200 overflow-auto">
+    <div id="root" class="w-full h-full" style="min-height:100%;"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
